@@ -63,7 +63,7 @@ class news_generator():
                 for i in range(items):
                     item = feeddata.entries[i]
                     title = html_escape(item['title'])
-                    link = item['link']
+                    link = html_escape(item['link'])
                     values = (title, link, self.today, cat)
                     self.cur.execute('insert or ignore into records (title, link, timestamp, category) values(?, ?, ?, ?);', values)
                 debug('Storing %i items from: %s' % (items, feedlink))
