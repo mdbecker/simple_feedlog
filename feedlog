@@ -51,12 +51,23 @@ class news_generator():
         self.close()
         return tmp
 
+    def url_hash(self, url):
+        pass
+
+    def url_unique(self, url):
+        pass
+
+    def url_store(self, url):
+        pass
+
     def download(self):
         # parse all rss feeds and insert the news items into the database,
         # making sure the items are all unique inside the db
         debug('Downloading feeds...')
+        data = ''
         for cat in sort_keys(self.feeds):
             debug('Category: %s' % cat)
+            data = '%s<h1>%s</h1><ol>\n' % (data, cat)
             for feedlink in self.feeds[cat]:
                 feeddata = feedparser.parse(feedlink)
                 items = min(self.max_items, len(feeddata.entries))
@@ -64,24 +75,12 @@ class news_generator():
                     item = feeddata.entries[i]
                     title = html_escape(item['title'])
                     link = html_escape(item['link'])
-                    values = (title, link, self.today, cat)
-                    self.cur.execute('insert or ignore into records (title, link, timestamp, category) values(?, ?, ?, ?);', values)
-                debug('Storing %i items from: %s' % (items, feedlink))
-                self.con.commit()
-
-    def prepare(self):
-        # pull out all the news items again and prepare them for output
-        debug('Preparing data...')
-        data = ''
-        for cat in sort_keys(self.feeds):
-            data = '%s\n<h1>%s</h1><ol>\n' % (data, cat)
-            values = (self.today, cat)
-            self.cur.execute('select * from records where timestamp = ? and category = ?;', values)
-            items = self.cur.fetchall()
-            for item in items:
-                tmp = '<li><a href="%s">%s</a></li>\n' % (item['link'], item['title'])
-                data += tmp
-            data += '</ol>'
+                    if not self.url_unique(link):
+                        continue
+                    debug('new: %s' % link)
+                    self.url_store(link)
+                    data = '%s<li><a href="%s">%s</a></li>\n' % (data, link, title)
+                data = '%s</ol>\n' % data
         return data
 
 ###############################################################################
@@ -89,7 +88,7 @@ class news_generator():
 def main():
     # grab news from the feeds
     gen = news_generator(CONFIG.database_file, CONFIG.max_items, CONFIG.feeds)
-    todays_news = gen.news()
+    todays_news = gen.download()
 
     # prepare the html page
     template = CONFIG.template
