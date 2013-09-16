@@ -5,6 +5,7 @@ import time
 import datetime
 import feedparser
 import sqlite3
+import hashlib
 
 import config
 CONFIG = config.CONFIG()
@@ -29,6 +30,9 @@ def debug(text):
 def sort_keys(dic):
     return sorted(dic.keys())
 
+def sha_hash(text):
+    return hashlib.sha256(text).hexdigest()
+
 class news_generator():
     def __init__(self, db_file, max_items, feeds):
         self.today = int(time.time())
@@ -51,11 +55,8 @@ class news_generator():
         self.close()
         return tmp
 
-    def url_hash(self, url):
-        pass
-
     def url_unique(self, url):
-        tmp = '%s\n' % url
+        tmp = '%s\n' % sha_hash(url)
         for line in file('db'):
             if line == tmp:
                 return False
@@ -63,7 +64,7 @@ class news_generator():
 
     def url_store(self, url):
         with open('db', 'a') as f:
-            f.write('%s\n' % url)
+            f.write('%s\n' % sha_hash(url))
 
     def download(self):
         # parse all rss feeds and insert the news items into the database,
