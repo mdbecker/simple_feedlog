@@ -1,6 +1,6 @@
 
 class CONFIG:
-    debug = True,
+    debug = True
     max_items = 50
     output_dir = '.'
     database_file = 'news.dat'
