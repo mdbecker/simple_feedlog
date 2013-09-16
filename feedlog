@@ -41,7 +41,7 @@ class news_generator():
     def url_unique(self, url):
         tmp = '%s\n' % sha_hash(url)
         try:
-            for line in file('db'):
+            for line in file(self.db_file):
                 if line == tmp:
                     return False
         except IOError:
@@ -49,7 +49,7 @@ class news_generator():
         return True
 
     def url_store(self, url):
-        with open('db', 'a') as f:
+        with open(self.db_file, 'a') as f:
             f.write('%s\n' % sha_hash(url))
 
     def download(self):
