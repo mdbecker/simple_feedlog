@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 import os
-import time
 import datetime
 import feedparser
-import sqlite3
+import hashlib
 
 import config
 CONFIG = config.CONFIG()
@@ -29,34 +28,37 @@ def debug(text):
 def sort_keys(dic):
     return sorted(dic.keys())
 
+def sha_hash(text):
+    return hashlib.sha256(text).hexdigest()
+
 class news_generator():
     def __init__(self, db_file, max_items, feeds):
-        self.today = int(time.time())
+        self.db_file = db_file
         self.max_items = max_items
         self.feeds = feeds
-        con = sqlite3.connect(db_file)
-        con.row_factory = sqlite3.Row
-        cur = con.cursor()
-        cur.execute('create table if not exists records (id integer primary key, title text, link text unique, timestamp integer, category text);')
-        self.con = con
-        self.cur = cur
 
-    def close(self):
-        self.con.close()
+    def url_unique(self, url):
+        tmp = '%s\n' % sha_hash(url)
+        try:
+            for line in file(self.db_file):
+                if line == tmp:
+                    return False
+        except IOError:
+            pass
+        return True
 
-    def news(self):
-        # shortcut func
-        self.download()
-        tmp =  self.prepare()
-        self.close()
-        return tmp
+    def url_store(self, url):
+        with open(self.db_file, 'a') as f:
+            f.write('%s\n' % sha_hash(url))
 
     def download(self):
         # parse all rss feeds and insert the news items into the database,
         # making sure the items are all unique inside the db
         debug('Downloading feeds...')
+        data = ''
         for cat in sort_keys(self.feeds):
             debug('Category: %s' % cat)
+            data = '%s<h1>%s</h1><ol>\n' % (data, cat)
             for feedlink in self.feeds[cat]:
                 feeddata = feedparser.parse(feedlink)
                 items = min(self.max_items, len(feeddata.entries))
@@ -64,24 +66,12 @@ class news_generator():
                     item = feeddata.entries[i]
                     title = html_escape(item['title'])
                     link = html_escape(item['link'])
-                    values = (title, link, self.today, cat)
-                    self.cur.execute('insert or ignore into records (title, link, timestamp, category) values(?, ?, ?, ?);', values)
-                debug('Storing %i items from: %s' % (items, feedlink))
-                self.con.commit()
-
-    def prepare(self):
-        # pull out all the news items again and prepare them for output
-        debug('Preparing data...')
-        data = ''
-        for cat in sort_keys(self.feeds):
-            data = '%s\n<h1>%s</h1><ol>\n' % (data, cat)
-            values = (self.today, cat)
-            self.cur.execute('select * from records where timestamp = ? and category = ?;', values)
-            items = self.cur.fetchall()
-            for item in items:
-                tmp = '<li><a href="%s">%s</a></li>\n' % (item['link'], item['title'])
-                data += tmp
-            data += '</ol>'
+                    if not self.url_unique(link):
+                        continue
+                    debug('new: %s' % link)
+                    self.url_store(link)
+                    data = '%s<li><a href="%s">%s</a></li>\n' % (data, link, title)
+                data = '%s</ol>\n' % data
         return data
 
 ###############################################################################
@@ -89,7 +79,7 @@ class news_generator():
 def main():
     # grab news from the feeds
     gen = news_generator(CONFIG.database_file, CONFIG.max_items, CONFIG.feeds)
-    todays_news = gen.news()
+    todays_news = gen.download()
 
     # prepare the html page
     template = CONFIG.template
