@@ -55,10 +55,15 @@ class news_generator():
         pass
 
     def url_unique(self, url):
-        pass
+        tmp = '%s\n' % url
+        for line in file('db'):
+            if line == tmp:
+                return False
+        return True
 
     def url_store(self, url):
-        pass
+        with open('db', 'a') as f:
+            f.write('%s\n' % url)
 
     def download(self):
         # parse all rss feeds and insert the news items into the database,
