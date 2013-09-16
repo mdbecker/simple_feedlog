@@ -4,7 +4,6 @@ import os
 import time
 import datetime
 import feedparser
-import sqlite3
 import hashlib
 
 import config
@@ -35,25 +34,9 @@ def sha_hash(text):
 
 class news_generator():
     def __init__(self, db_file, max_items, feeds):
-        self.today = int(time.time())
+        self.db_file = db_file
         self.max_items = max_items
         self.feeds = feeds
-        con = sqlite3.connect(db_file)
-        con.row_factory = sqlite3.Row
-        cur = con.cursor()
-        cur.execute('create table if not exists records (id integer primary key, title text, link text unique, timestamp integer, category text);')
-        self.con = con
-        self.cur = cur
-
-    def close(self):
-        self.con.close()
-
-    def news(self):
-        # shortcut func
-        self.download()
-        tmp =  self.prepare()
-        self.close()
-        return tmp
 
     def url_unique(self, url):
         tmp = '%s\n' % sha_hash(url)
