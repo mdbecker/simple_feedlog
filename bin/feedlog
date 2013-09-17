@@ -71,7 +71,7 @@ class news_generator():
                     debug('new: %s' % link)
                     self.url_store(link)
                     data = '%s<li><a href="%s">%s</a></li>\n' % (data, link, title)
-                data = '%s</ol>\n' % data
+            data = '%s</ol>\n' % data
         return data
 
 ###############################################################################
