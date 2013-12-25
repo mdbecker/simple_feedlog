@@ -64,8 +64,8 @@ class news_generator():
                 items = min(self.max_items, len(feeddata.entries))
                 for i in range(items):
                     item = feeddata.entries[i]
-                    title = html_escape(item['title'].encode('utf-8'))
                     link = html_escape(item['link'].encode('utf-8'))
+                    title = html_escape(item['title'].encode('utf-8')) or link
                     if not self.url_unique(link):
                         continue
                     debug('new: %s' % link)
